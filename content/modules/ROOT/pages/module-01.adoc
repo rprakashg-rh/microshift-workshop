@@ -1,0 +1,78 @@
+= {lab_name}
+:navtitle: Install Microshift and Optional Packages
+:numbered:
+:imagesdir: ../assets/images
+
+= Installing Microshift and Optional Packages
+This module covers necessary steps to install microshift and optional packages needed
+to execute this workshop
+
+=== Configure subscription manager to manage rhsm repos
+First we need to configure subscription manager to manage rhsm repos by running the command
+below
+
+[source,bash]
+----
+$ sudo subscription-manager config --rhsm.manage_repos=1
+----
+
+=== Enable microshift repos
+Next we can enable the microshift repos by running command below. We are going to 
+install Microshift 4.16 first and later in the workshop we will upgrade the cluster
+to Microshift 4.18
+
+[source,bash]
+----
+$ sudo subscription-manager repos \
+    --enable rhocp-4.16-for-rhel-9-$(uname -m)-rpms \
+    --enable fast-datapath-for-rhel-9-$(uname -m)-rpms
+----
+
+=== Install microshift
+Install microshift by running the command below
+
+[source,bash]
+----
+$ sudo dnf install -y microshift
+----
+
+=== Download and copy the Red Hat pullsecret to ec2 instance
+Download Red Hat pullsecret from https://cloud.redhat.com[cloud.redhat.com] and copy it to the 
+server. For. ex save the pullsecret file under $HOME/rhpullsecret directory. Copy this file
+on to the ec2 instance using the command below.
+
+[source,bash]
+----
+$ scp -i ~/.ssh/ec2 $HOME/rhpullsecret/pull-secret.txt ec2-user@ec2-52-12-123-175.us-west-2.compute.amazonaws.com:/home/ec2-user/openshift-pull-secret
+----
+
+SSH on to the ec2 instance and move the pullsecret file under `/etc/crio` directory.
+If `/etc/crio` directory doesn't exist be sure to create it.
+
+[source,bash]
+----
+$ sudo mv openshift-pull-secret /etc/crio/
+----
+
+Make the /etc/crio/openshift-pull-secret file readable and writeable by the 
+root user only by running the command below
+
+[source,bash]
+----
+$ sudo chmod 600 /etc/crio/openshift-pull-secret
+----
+
+=== Install optional packages
+Install microshift olm package.
+
+[source,bash]
+----
+$ sudo dnf install -y microshift-olm
+----
+
+Install microshift gitops package.
+[source,bash]
+----
+$ sudo dnf install -y microshift-gitops
+----
+ 

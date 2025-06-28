@@ -1,0 +1,158 @@
+= {lab_name}
+:navtitle: Preflight
+:numbered:
+:imagesdir: ../assets/images
+
+= Pre-flight
+This module covers necessary steps to deploy the infrastructure required to run this lab.
+
+
+=== Clone this repository
+
+[source, bash]
+----
+$ git clone git@github.com:rprakashg-rh/microshift-workshop.git
+----
+
+=== Provision AWS VPC
+We will use terraform scripts to provision an AWS VPC infrastructure to deploy 
+infrastructure required to complete this lab. These steps could probably be part 
+of provisioning lab environments.
+
+Open a new terminal windows and switch to the directory where you cloned this 
+repository then run commands below to provision the VPC infrastructure.
+
+[source, bash]
+----
+$ cd terraform/vpc
+terraform init 
+terraform plan
+terraform apply
+----
+
+=== Provision an EC2 instance running RHEL 9.4 
+Microshift 4.16 through 4.18 versions require a RHEL 9.4 instance. Ansible playbook
+is made available to automate the provisioning on EC2 instance. Before we can execute
+the playbook we need to perform below steps
+
+==== Update Ansible Vars file
+Ansible uses vars file to define dynamic aspects of the system. A sample vars file
+is provided. Contents of the yaml file are shown below. We will need to update the
+values for ami, subnet_id and security_group_id.
+
+[source, yaml]
+----
+---
+ami: ami-0dc921650a088ecb2
+instance_name: microshift-412
+instance_type: t2.2xlarge
+key_name: ec2
+subnet_id: subnet-0ddef3ec4ea452aac
+security_group_id: sg-0fdc37bb13959088b
+storage: 50
+commands: []
+...
+----
+
+===== Update ami value
+First lets get the RHEL 9.4 AMI ID for the region we want to provision the EC2 instance by running the command below.
+
+[source, bash]
+----
+$  aws ec2 describe-images \
+  --owners <AWS account ID> \
+  --region <AWS region> \
+  --filters "Name=name,Values=RHEL-9.4*" "Name=state,Values=available" \
+  --query 'sort_by(Images, &CreationDate)[-1].ImageId' \
+  --output text
+----
+
+Above script will display an AMI ID as shown in screen capture below. 
+
+image::find-ami-output.jpg[amiid]
+
+Copy the `AMI ID`and update the ansible vars file 
+
+===== Update public subnet id
+Login to AWS console to find the public subnet id. See screen capture below.
+
+image::find-aws-public-subnet-id.jpg[subnet]
+
+===== Update public subnet security group id
+Login to AWS console to find the security group id for public subnets on AWS as 
+shown in screen capture below
+
+image::find-aws-sg-id.jpg[securitygroup]
+
+===== Create an ansible vault
+We are going to use ansible vault to store some sensitive secrets we need to 
+provision the ec2 instance. Structure of the yaml in ansible vault file looks like below
+
+[source,yaml]
+----
+admin_user: ec2-user
+ssh_key: <paste ssh public key here>
+admin_user_password: <redacted>
+----
+
+Create the ansible vault by running the command below and paste the yaml snippet
+shown above and replace values to match your environment and save and exist.
+
+[source,yaml]
+----
+$ ansible-vault create vars/secrets.yml
+----
+
+==== Provisioning EC2 instance
+At this point we are now ready to provision the EC2 instance. Run the ansible playbook
+as shown below.
+
+[source,yaml]
+----
+$ ansible-playbook --vault-password-file <(echo "$VAULT_SECRET") launch-ec2.yaml -e @vars/ec2.yml
+----
+
+If everything went through successfully we should see an output like below.
+
+image::launch-ec2.jpg[launchec2]
+
+=== Connect the Instance to Red Hat Cloud
+Next we will need to connect the instance to Red Hat. We will SSH into the instance and 
+use `rhc` cli tool to connect the system to Red Hat cloud.
+
+SSH into the instance
+[source,bash]
+----
+$ ssh -i ~/.ssh/ec2 ec2-user@ec2-52-12-123-175.us-west-2.compute.amazonaws.com
+----
+
+Screen capture below shows successfully SSH'd into the instance.
+
+image::ssh-output.jpg[ssh]
+
+Connect the system to Red Hat cloud using `rhc` cli command shown below. Command will
+prompt to enter your redhat credentials, once successfully authenticated system will be
+connected to Red Hat cloud.
+
+[source,bash]
+----
+$ sudo rhc connect
+----
+
+image::rhc-output.jpg[rhcoutput]
+
+=== Check for pending updates and update the system
+Next we will check for any pending updates to rpm packages and update the system.
+
+Check for pending updates by running command below
+
+[source,bash]
+----
+$ sudo dnf check-update
+----
+
+Upgrade all packages and dependencies by running the command below
+[source,bash]
+----
+$ sudo dnf upgrade
+----

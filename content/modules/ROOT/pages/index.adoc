@@ -1,0 +1,26 @@
+= {lab_name}
+:navtitle: Overview
+:numbered:
+:imagesdir: ../assets/images
+
+== Lab Introduction
+
+
+== Background
+
+== Lab Environment
+
+== Workshop Agenda
+
+== Access & Credentials
+
+You're already logged into the environment as `{lab_username}`. No manual setup is needed.
+
+All lab content is preconfigured and ready to run.
+
+=== Systems Overview
+
+This lab environment includes a variety of tools working together to demonstrate AI-driven remediation. You'll interact with the following systems:
+* RHEL node - Where we are going to run the lab modules
+
+== What's Next?

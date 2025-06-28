@@ -1,0 +1,27 @@
+name: modules
+title: Microshift on RHEL 9 workshop
+version: master
+nav:
+  - modules/ROOT/nav.adoc
+
+asciidoc:
+  attributes:
+    lab_name: "Microshift on RHEL 9 workshop"
+    page-pagination: true
+    release-version: master
+
+    # Core user/environment vars
+    guid: MYGUID
+    sandbox_zone: MYSANDBOX
+    lab_username: lab-user
+    lab_password: "{ssh_password}"
+
+    # Raw service ports
+    gitea_web_ui_port: 488
+    vscode_web_ui_port: 8443
+    mattermost_port: 8065
+
+    # Optional links (Showroom UI dropdown)
+    page-links:
+      - url: https://redhat.com
+        text: Red Hat
