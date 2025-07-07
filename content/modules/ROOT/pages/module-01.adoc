@@ -75,4 +75,9 @@ Install microshift gitops package.
 ----
 $ sudo dnf install -y microshift-gitops
 ----
- 
+
+Enable and start microshift service
+[source,bash]
+----
+$ sudo systemctl enable --now
+----

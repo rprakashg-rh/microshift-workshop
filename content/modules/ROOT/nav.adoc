@@ -1,3 +1,3 @@
 * xref:module-00.adoc[0. Pre-flight]
 * xref:module-01.adoc[1. Install Microshift and Optional Packages]
-
+* xref:module-02.adoc[2. Configuring custom API server certificates]

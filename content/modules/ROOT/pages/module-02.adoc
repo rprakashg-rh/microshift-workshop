@@ -1,0 +1,162 @@
+= {lab_name}
+:navtitle: Configuring custom API server certificates
+:numbered:
+:imagesdir: ../assets/images
+
+= Configuring Custom API Server certificates
+
+=== Install certbot
+
+Install Extra packages for RHEL
+
+[source,bash]
+----
+$ sudo dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.noarch.rpm
+----
+
+image::install-epel.jpg[epel]
+
+Install certbot
+
+[source,bash]
+----
+$ sudo dnf install -y certbot
+----
+
+image::install-certbot.jpg[certbot]
+
+Install AWS Route 53 DNS plugin for Certbot
+
+[source,bash]
+----
+$ sudo dnf install python3-certbot-dns-route53
+----
+
+image::install-certbot-r53-dns.jpg[certbotr53]
+
+=== Setup AWS Credentials
+
+Create `.aws` directory under `/root` to store AWS credentials
+
+[source,bash]
+----
+$ sudo mkdir -p /root/.aws
+----
+
+Create the credentials file
+
+[source,bash]
+----
+$ sudo touch /root/.aws/credentials 
+----
+
+Add AWS key to credentials file as shown below
+
+[source,toml]
+----
+[default]
+aws_access_key_id = YOUR_ACCESS_KEY
+aws_secret_access_key = YOUR_SECRET_KEY
+----
+
+Create an AWS policy as shown below to grant certbot permission on AWS route53
+
+[source,bash]
+----
+$ aws iam create-policy \
+  --policy-name=certbot-policy \
+  --policy-document='{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "route53:GetChange",
+        "route53:ListHostedZones"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "route53:ListResourceRecordSets",
+        "route53:ChangeResourceRecordSets"
+      ],
+      "Resource": "arn:aws:route53:::hostedzone/<hostedzoneid>"
+    }
+  ]
+}' \
+--query='Policy.Arn' \
+--output=text | pbcopy
+----
+
+Create a DNS records for the certificate `api.microshift.sandbox1420.opentlc.com` as shown in the 
+screen capture below. Login to your aws console and head over to route 53 to create the DNS records.
+
+image::microshift-dns.jpg[dns]
+
+Generate Certificate using certbot
+[source,bash]
+----
+$ sudo certbot certonly --dns-route53 -d api.microshift.sandbox1420.opentlc.com -d microshift.sandbox1420.opentlc.com -d microshift.sandbox1420.opentlc.com
+----
+
+You can see the certbot has successfully created the certificate and stored it on the disk and
+created a schedule task to automatically renew the certificate in the background.
+
+image::certbot-output.jpg[certbot]
+
+=== Configure Microshift to use the custom certificates
+
+Copy `config.yaml.default` file in `/etc/microshift` to `config.yaml`
+
+[source,bash]
+----
+$ sudo cp /etc/microshift/config.yaml.default /etc/microshift/config.yaml
+----
+
+Edit the `config.yaml` and add snippet shown below and restart `microshift` service.
+
+[source,yaml]
+----
+apiServer:
+    # Kube apiserver advertise address to work around the certificates issue when requiring external access using the node IP. This will turn into the IP configured in the endpoint slice for kubernetes service. Must be a reachable IP from pods. Defaults to service network CIDR first address.
+    advertiseAddress: ""
+    auditLog:
+        # maxFileAge is the maximum number of days to retain old audit log files
+        maxFileAge: 0
+        # maxFileSize is the maximum size in megabytes of the audit log file before it gets rotated
+        maxFileSize: 200
+        # maxFiles is the maximum number of rotated audit log files to retain
+        maxFiles: 10
+        # profile is the OpenShift profile specifying a specific logging policy
+        profile: Default
+    # List of custom certificates used to secure requests to specific host names
+    namedCertificates:
+        - certPath: "/etc/letsencrypt/live/api.microshift.sandbox1420.opentlc.com/fullchain.pem"
+          keyPath: "/etc/letsencrypt/live/api.microshift.sandbox1420.opentlc.com/privkey.pem"
+          names:
+            - "api.microshift.sandbox1420.opentlc.com"
+----
+
+Restart Microshift
+
+[source,bash]
+----
+$ sudo systemctl enable microshift --now
+----
+
+Check `microshift` is up and running.
+
+[source,bash]
+----
+$ sudo systemctl status microshift
+----
+
+image::microshift-status.jpg[microshift]
+
+=== Setup kubeconfig file
+Microshift provides two `kubeconfig` files
+* Local access
+* Remote access
+
