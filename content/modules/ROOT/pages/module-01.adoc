@@ -71,6 +71,13 @@ $ sudo dnf install -y microshift-olm
 ----
 
 Install microshift gitops package.
+
+Enable gitops repo
+[source,bash]
+----
+$ sudo subscription-manager repos --enable=gitops-1.16-for-rhel-9-$(uname -m)-rpms
+----
+
 [source,bash]
 ----
 $ sudo dnf install -y microshift-gitops
@@ -79,5 +86,93 @@ $ sudo dnf install -y microshift-gitops
 Enable and start microshift service
 [source,bash]
 ----
-$ sudo systemctl enable --now
+$ sudo systemctl enable microshift --now
 ----
+
+Verify `Microshift` cluster is up and running
+
+[source,bash]
+----
+$ sudo systemctl status microshift
+----
+
+image::microshift-status.jpg[microshift]
+
+=== Setup kubeconfig file
+.Microshift provides two `kubeconfig` files
+* Local access which can be found at `/var/lib/microshift/resources/kubeadmin/kubeconfig`
+* Remote access which can be found at `var/lib/microshift/resources/kubeadmin/<hostname>/kubeconfig`
+
+Setup cluster access using `oc`
+
+[source,bash]
+----
+$ mkdir -p ~/.kube/
+$ sudo cp /var/lib/microshift/resources/kubeadmin/kubeconfig ~/.kube/config
+$ sudo chown ec2-user ~/.kube/config
+----
+
+Configure and Verify OLM is setup for Microshift cluster. OLM requires a catalog to be configured and all the 
+operator installation on the cluster must be done through CLI console and operatorhub web interfaces aren't 
+available in Microshift.
+
+Verify OLM operator pod is running
+
+[source,bash]
+----
+$ oc -n openshift-operator-lifecycle-manager get pod -l app=olm-operator
+----
+
+image::olm-operator-pod-status.jpg[olm]
+
+Verify OLM Catalog operator pod is running.
+
+[source,bash]
+----
+$ oc -n openshift-operator-lifecycle-manager get pod -l app=catalog-operator
+----
+
+image::catalog-operator-pod-status.jpg[catalog]
+
+Create a catalog source
+
+[source,bash]
+----
+$ oc apply -f - <<EOF
+apiVersion: operators.coreos.com/v1alpha1
+kind: CatalogSource
+metadata:
+  name: operatorhubio-catalog
+  namespace: openshift-marketplace 
+spec:
+  sourceType: grpc
+  image: quay.io/operatorhubio/catalog:latest
+  displayName: Community Operators 
+  publisher: OperatorHub.io
+  grpcPodConfig:
+    securityContextConfig: restricted 
+  updateStrategy:
+    registryPoll:
+      interval: 60m
+EOF
+----
+
+image::create-catalog-source.jpg[createcatalog]
+
+Verify that catalog source is applied by checking READY state using the command below.
+
+[source,bash]
+----
+$ oc describe catalogsources.operators.coreos.com -n openshift-marketplace operatorhubio-catalog
+----
+
+image::catalog-ready.jpg[catalogready]
+
+Verify ArgoCD gitops agent is installed successfully
+
+[source,bash]
+----
+$ oc get pods -n openshift-gitops
+----
+
+image::microshift-gitops-status.jpg[gitops]

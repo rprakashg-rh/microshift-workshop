@@ -143,20 +143,5 @@ Restart Microshift
 
 [source,bash]
 ----
-$ sudo systemctl enable microshift --now
+$ sudo systemctl restart microshift
 ----
-
-Check `microshift` is up and running.
-
-[source,bash]
-----
-$ sudo systemctl status microshift
-----
-
-image::microshift-status.jpg[microshift]
-
-=== Setup kubeconfig file
-Microshift provides two `kubeconfig` files
-* Local access
-* Remote access
-

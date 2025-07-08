@@ -1,0 +1,10 @@
+---
+ami: ami-07af684733f156701
+instance_name: microshift-416
+instance_type: t2.2xlarge
+key_name: ec2
+subnet_id: subnet-08afc0e1bac3da1ff
+security_group_id: sg-076bc30fb987de092
+storage: 50
+commands: []
+...

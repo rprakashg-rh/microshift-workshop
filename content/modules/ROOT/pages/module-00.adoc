@@ -60,7 +60,7 @@ First lets get the RHEL 9.4 AMI ID for the region we want to provision the EC2 i
 [source, bash]
 ----
 $  aws ec2 describe-images \
-  --owners <AWS account ID> \
+  --owners 309956199498 \
   --region <AWS region> \
   --filters "Name=name,Values=RHEL-9.4*" "Name=state,Values=available" \
   --query 'sort_by(Images, &CreationDate)[-1].ImageId' \
